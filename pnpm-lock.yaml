@@ -1,14 +1,15 @@
 dependencies:
   assert: 2.0.0
   sirv-cli: 1.0.11
+  stats.js: 0.17.0
   three: 0.126.0
-  three-trackballcontrols-ts: 0.2.3
 devDependencies:
   '@rollup/plugin-commonjs': 17.1.0_rollup@2.40.0
   '@rollup/plugin-node-resolve': 11.2.0_rollup@2.40.0
   '@rollup/plugin-typescript': 8.2.0_611c8b2ed1e492df47cb58b5c35b4947
   '@tsconfig/svelte': 1.0.10
   '@types/assert': 1.5.4
+  '@types/stats.js': 0.17.0
   '@types/three': 0.125.3
   rollup: 2.40.0
   rollup-plugin-css-only: 3.1.0_rollup@2.40.0
@@ -154,6 +155,10 @@ packages:
     dev: true
     resolution:
       integrity: sha512-2XZovu4NwcqmtZtsBR5XYLw18T8cBCnU2USFHTnYLLHz9fkhnoEMoDsqShJIOFsFhn5aJHjweiUUdTrDGujegA==
+  /@types/stats.js/0.17.0:
+    dev: true
+    resolution:
+      integrity: sha512-9w+a7bR8PeB0dCT/HBULU2fMqf6BAzvKbxFboYhmDtDkKPiyXYbjoe2auwsXlEFI7CFNMF1dCv3dFH5Poy9R1w==
   /@types/three/0.125.3:
     dev: true
     resolution:
@@ -937,6 +942,10 @@ packages:
     dev: true
     resolution:
       integrity: sha512-9NykojV5Uih4lgo5So5dtw+f0JgJX30KCNI8gwhz2J9A15wD0Ml6tjHKwf6fTSa6fAdVBdZeNOs9eJ71qCk8vA==
+  /stats.js/0.17.0:
+    dev: false
+    resolution:
+      integrity: sha1-scPcRtlEmLV4t/05hbgaznExzH0=
   /string.prototype.trimend/1.0.4:
     dependencies:
       call-bind: 1.0.2
@@ -1059,16 +1068,6 @@ packages:
     hasBin: true
     resolution:
       integrity: sha512-vyqLMoqadC1uR0vywqOZzriDYzgEkNJFK4q9GeyOBHIbiECHiWLKcWfbQWAUaPfxkjDhapSlZB9f7fkMrvkVjA==
-  /three-trackballcontrols-ts/0.2.3:
-    dependencies:
-      three: 0.124.0
-    dev: false
-    resolution:
-      integrity: sha512-uu87QyZHZiDV5xhItp1GRXF1a612YPZNcqVayLE98EXlajuMZSLt/6AN1E10wY7iYW8d3Ac+EStqxAzYYo16RA==
-  /three/0.124.0:
-    dev: false
-    resolution:
-      integrity: sha512-ROXp1Ly7YyF+jC910DQyAWj++Qlw2lQv0qwYLNQwdDbjk4bsOXAfGO92wYTMPNei1GMJUmCxSxc3MjGBTS09Rg==
   /three/0.126.0:
     dev: false
     resolution:
@@ -1145,6 +1144,7 @@ specifiers:
   '@rollup/plugin-typescript': ^8.0.0
   '@tsconfig/svelte': ^1.0.0
   '@types/assert': ^1.5.4
+  '@types/stats.js': ^0.17.0
   '@types/three': ^0.125.3
   assert: ^2.0.0
   rollup: ^2.3.4
@@ -1153,10 +1153,10 @@ specifiers:
   rollup-plugin-svelte: ^7.0.0
   rollup-plugin-terser: ^7.0.0
   sirv-cli: ^1.0.0
+  stats.js: ^0.17.0
   svelte: ^3.0.0
   svelte-check: ^1.0.0
   svelte-preprocess: ^4.0.0
   three: ^0.126.0
-  three-trackballcontrols-ts: ^0.2.3
   tslib: ^2.0.0
   typescript: ^4.0.0

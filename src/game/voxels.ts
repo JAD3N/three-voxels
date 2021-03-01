@@ -181,12 +181,12 @@ export class Voxels extends THREE.Group {
 		this.geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(colors), 3));
 
 		this.geometry.computeVertexNormals();
-		this.geometry.computeTangents();
 		this.geometry.computeBoundingBox();
 
 		// TODO: materials (using roughness & reflectivity)
-		this.materials = new THREE.MeshLambertMaterial({
+		this.materials = new THREE.MeshPhongMaterial({
 			vertexColors: true,
+			reflectivity: 0.5,
 		});
 
 		// generate mesh

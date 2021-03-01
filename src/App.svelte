@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+
 	import { Game } from './game';
 	import { VoxLoader } from './game/vox-loader';
-import { Voxels } from './game/voxels';
-import * as THREE from 'three';
+	import { Voxels } from './game/voxels';
 
 	let canvas: HTMLCanvasElement | undefined;
 

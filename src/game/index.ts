@@ -1,7 +1,13 @@
+import Stats from 'stats.js';
 import * as THREE from 'three';
-import { TrackballControls } from 'three-trackballcontrols-ts';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
+import { SMAAPass } from 'three/examples/jsm/postprocessing/SMAAPass';
+import { SAOPass } from 'three/examples/jsm/postprocessing/SAOPass';
+import { TrackballControls } from 'three/examples/jsm/controls/TrackballControls';
 
 export class Game {
+	stats: Stats;
 	startTime: number;
 	isRunning: boolean;
 
@@ -10,12 +16,12 @@ export class Game {
 	camera: THREE.PerspectiveCamera;
 
 	controls: TrackballControls;
+	composer: EffectComposer;
 
 	constructor(public readonly canvas: HTMLCanvasElement) {
 		this.startTime = 0;
 		this.isRunning = false;
 
-		// init
 		this.init();
 
 		// force binds
@@ -23,9 +29,13 @@ export class Game {
 	}
 
 	init(): void {
-		this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true });
+		this.stats = new Stats();
+		document.body.appendChild(this.stats.dom);
+
+		this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: false });
 		this.renderer.setPixelRatio(window.devicePixelRatio);
 		this.renderer.shadowMap.enabled = true;
+		this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 		this.scene = new THREE.Scene();
 		this.scene.background = new THREE.Color(0xffffff);
@@ -38,23 +48,39 @@ export class Game {
 		this.camera.position.x = 7 * 20;
 		this.camera.lookAt(0, 0, 0);
 
-		this.scene.add(new THREE.AmbientLight(0x666666));
+		this.scene.add(new THREE.AmbientLight(0xeeeeee));
 
-		const dirLight = new THREE.DirectionalLight(0xffffff);
-		dirLight.position.set( -1, 0.75, 1 );
-		dirLight.position.multiplyScalar( 50);
+		const dirLight = new THREE.DirectionalLight(0xffffff, 0.5);
+		dirLight.position.set(-0.6, 0.75, 1);
+		dirLight.position.multiplyScalar(50);
 		dirLight.castShadow = true;
-		dirLight.shadow.mapSize.set(1024 * 8, 1024 * 8);
-
-            var d = 200;
-
-            dirLight.shadow.camera.left = -d;
-            dirLight.shadow.camera.right = d;
-            dirLight.shadow.camera.top = d;
-            dirLight.shadow.camera.bottom = -d;
+		dirLight.shadow.mapSize.set(4096, 4096);
+		const d = 256;
+		dirLight.shadow.camera.left = -d;
+		dirLight.shadow.camera.right = d;
+		dirLight.shadow.camera.top = d;
+		dirLight.shadow.camera.bottom = -d;
 		this.scene.add(dirLight);
 
 		this.controls = new TrackballControls(this.camera as any, this.renderer.domElement);
+		this.composer = new EffectComposer(this.renderer);
+
+		// base render pass
+		this.composer.addPass(new RenderPass(this.scene, this.camera));
+
+		// sao pass
+		const saoPass = new SAOPass(this.scene, this.camera, false, true);
+		saoPass.params.saoScale = 4;
+		saoPass.params.saoIntensity = 0.001;
+		saoPass.params.saoBlurRadius = 0;
+		saoPass.params.saoKernelRadius = 25;
+		this.composer.addPass(saoPass);
+
+		// smaa pass (good performance antialiasing)
+		this.composer.addPass(new SMAAPass(
+			this.canvas.width * this.renderer.getPixelRatio(),
+			this.canvas.height * this.renderer.getPixelRatio(),
+		));
 	}
 
 	resize(): void {
@@ -63,6 +89,7 @@ export class Game {
 
 		if(this.canvas.width !== width || this.canvas.height !== height) {
 			this.renderer.setSize(width, height, false);
+			this.composer.setSize(width, height);
 
 			const aspect = width / height;
 			this.camera.aspect = aspect;
@@ -75,9 +102,13 @@ export class Game {
 			return;
 		}
 
+		this.stats.begin();
+
 		this.resize();
 		this.controls.update();
-		this.renderer.render(this.scene, this.camera);
+		this.composer.render(deltaTime);
+
+		this.stats.end();
 	}
 
 	start(): Promise<void> {

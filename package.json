@@ -13,6 +13,7 @@
     "@rollup/plugin-typescript": "^8.0.0",
     "@tsconfig/svelte": "^1.0.0",
     "@types/assert": "^1.5.4",
+    "@types/stats.js": "^0.17.0",
     "@types/three": "^0.125.3",
     "rollup": "^2.3.4",
     "rollup-plugin-css-only": "^3.1.0",
@@ -28,7 +29,7 @@
   "dependencies": {
     "assert": "^2.0.0",
     "sirv-cli": "^1.0.0",
-    "three": "^0.126.0",
-    "three-trackballcontrols-ts": "^0.2.3"
+    "stats.js": "^0.17.0",
+    "three": "^0.126.0"
   }
 }
