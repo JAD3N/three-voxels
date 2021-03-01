@@ -50,7 +50,7 @@ export class Game {
 
 		this.scene.add(new THREE.AmbientLight(0xeeeeee));
 
-		const dirLight = new THREE.DirectionalLight(0xffffff, 0.5);
+		const dirLight = new THREE.DirectionalLight(0xffffff, 0.40);
 		dirLight.position.set(-0.6, 0.75, 1);
 		dirLight.position.multiplyScalar(50);
 		dirLight.castShadow = true;
