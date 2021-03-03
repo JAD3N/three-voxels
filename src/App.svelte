@@ -4,6 +4,7 @@
 	import { Game } from './game';
 	import { VoxLoader } from './game/vox-loader';
 	import { Voxels } from './game/voxels';
+	import { MeshBuilder } from './game/voxels/mesh-builder';
 
 	let canvas: HTMLCanvasElement | undefined;
 
@@ -18,19 +19,11 @@
 		await vox.parse();
 
 		const game = new Game(canvas);
+		const meshBuilder = new MeshBuilder();
 
 		for(const model of vox.models) {
-			const voxels = new Voxels(model.dimensions, model.voxels, vox.palette);
-			game.scene.add(voxels);
-
-			// const wireframe = new THREE.WireframeGeometry( voxels.geometry );
-
-			// const line = new THREE.LineSegments(wireframe);
-			// const lineMaterial = line.material as THREE.Material;
-			// lineMaterial.depthTest = false;
-
-			// game.scene.add(new THREE.BoxHelper(line));
-			// game.scene.add(line);
+			const voxels = new Voxels(model.dimensions, vox.palette, model.voxels);
+			game.scene.add(meshBuilder.build(voxels, 32, game.camera.position));
 		}
 
 		game.start();

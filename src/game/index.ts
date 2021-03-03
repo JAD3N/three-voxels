@@ -5,6 +5,7 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
 import { SMAAPass } from 'three/examples/jsm/postprocessing/SMAAPass';
 import { SAOPass } from 'three/examples/jsm/postprocessing/SAOPass';
 import { TrackballControls } from 'three/examples/jsm/controls/TrackballControls';
+import { Voxels } from './voxels';
 
 export class Game {
 	stats: Stats;
@@ -54,7 +55,7 @@ export class Game {
 		dirLight.position.set(-0.6, 0.75, 1);
 		dirLight.position.multiplyScalar(50);
 		dirLight.castShadow = true;
-		dirLight.shadow.mapSize.set(4096, 4096);
+		dirLight.shadow.mapSize.set(2048, 2048);
 		const d = 256;
 		dirLight.shadow.camera.left = -d;
 		dirLight.shadow.camera.right = d;
@@ -62,19 +63,19 @@ export class Game {
 		dirLight.shadow.camera.bottom = -d;
 		this.scene.add(dirLight);
 
-		this.controls = new TrackballControls(this.camera as any, this.renderer.domElement);
+		this.controls = new TrackballControls(this.camera, this.renderer.domElement);
 		this.composer = new EffectComposer(this.renderer);
 
 		// base render pass
 		this.composer.addPass(new RenderPass(this.scene, this.camera));
 
 		// sao pass
-		const saoPass = new SAOPass(this.scene, this.camera, false, true);
-		saoPass.params.saoScale = 4;
-		saoPass.params.saoIntensity = 0.001;
-		saoPass.params.saoBlurRadius = 0;
-		saoPass.params.saoKernelRadius = 25;
-		this.composer.addPass(saoPass);
+		// const saoPass = new SAOPass(this.scene, this.camera, false, true);
+		// saoPass.params.saoScale = 4;
+		// saoPass.params.saoIntensity = 0.001;
+		// saoPass.params.saoBlurRadius = 0;
+		// saoPass.params.saoKernelRadius = 25;
+		// this.composer.addPass(saoPass);
 
 		// smaa pass (good performance antialiasing)
 		this.composer.addPass(new SMAAPass(
