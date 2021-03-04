@@ -41,7 +41,7 @@ function createDefaultMaterial(): THREE.Material {
 		uniforms: shader.uniforms,
 		fragmentShader: shader.fragmentShader,
 		vertexShader,
-		// defines: { 'USE_AMBIENT_OCCLUSION': '' },
+		defines: { 'USE_AMBIENT_OCCLUSION': '' },
 		vertexColors: true,
 		lights: true,
 	});
@@ -143,7 +143,7 @@ export class MeshBuilder {
 		geometry.setIndex(indices);
 		geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(vertices), 3));
 		geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(colors), 3));
-		// geometry.setAttribute('ambientOcclusion', new THREE.BufferAttribute(new Float32Array(ao), 3));
+		geometry.setAttribute('ambientOcclusion', new THREE.BufferAttribute(new Float32Array(ao), 3));
 
 		geometry.computeVertexNormals();
 		geometry.computeBoundingBox();
