@@ -39,7 +39,7 @@ export function calcAO(
 			}
 			break;
 		case 1:
-			if(colorIndex > 1) {
+			if(colorIndex > 0) {
 				ao += calcAOVertex(props, neighbors['-1:1:-1'], neighbors['-1:1:0'], neighbors['0:1:-1']) << 0;
 				ao += calcAOVertex(props, neighbors['-1:1:1'], neighbors['-1:1:0'], neighbors['0:1:1']) << 2;
 				ao += calcAOVertex(props, neighbors['1:1:1'], neighbors['1:1:0'], neighbors['0:1:1']) << 4;
