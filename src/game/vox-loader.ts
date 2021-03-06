@@ -172,7 +172,6 @@ export class VoxLoader {
 				break;
 			case 'RGBA':
 				const colors = new Uint8Array(this.buffer, index + 12, 256 * 4);
-
 				chunk = {
 					...chunk,
 					colors,
@@ -240,28 +239,31 @@ export class VoxLoader {
 			this.models.push({ dimensions, voxels });
 		}
 
-		const paletteChunk = main.children[modelOffset + numOfModels * 2] as VoxPaletteChunk | undefined;
+		for(const chunk of main.children.slice(modelOffset + numOfModels * 2)) {
+			if(chunk?.chunkId === 'RGBA') {
+				const paletteChunk = chunk as VoxPaletteChunk;
 
-		if(paletteChunk?.chunkId === 'RGBA') {
-			this.palette = [[0, 0, 0, 0]];
+				this.palette = [[0, 0, 0, 0]];
 
-			for(let i = 0; i < 255; i++) {
-				const offset = paletteChunk.index + 12 + 4 * i;
-				const color = [
-					this.data[offset],
-					this.data[offset + 1],
-					this.data[offset + 2],
-					this.data[offset + 3],
-				];
+				for(let i = 0; i < 255; i++) {
+					const color = [
+						paletteChunk.colors[i * 4],
+						paletteChunk.colors[i * 4 + 1],
+						paletteChunk.colors[i * 4 + 2],
+						paletteChunk.colors[i * 4 + 3],
+					];
 
-				this.palette.push(color as VoxPalette[0]);
+					this.palette.push(color as VoxPalette[0]);
+				}
 			}
-		} else {
+		}
+
+		if(!this.palette) {
 			this.palette = DEFAULT_PALETTE.map(color => [
-				color >>> 16,
-				color >>> 8,
-				color >>> 0,
-				color >>> 24,
+				(color >>> 16) & 0xff,
+				(color >>> 8) & 0xff,
+				(color >>> 0) & 0xff,
+				(color >>> 24) & 0xff,
 			]);
 		}
 	}

@@ -13,7 +13,7 @@
 			return;
 		}
 
-		const res = await fetch('samples/knob.vox');
+		const res = await fetch('samples/largedata.vox');
 		const vox = new VoxLoader(await res.arrayBuffer());
 
 		await vox.parse();
@@ -23,7 +23,9 @@
 
 		for(const model of vox.models) {
 			const voxels = new Voxels(model.dimensions, vox.palette, model.voxels);
-			const mesh = meshBuilder.build(voxels, 0, game.camera.position);
+			const mesh = meshBuilder.build(voxels, 32, game.camera.position);
+
+			console.log(voxels.palette);
 
 			mesh.position.set(
 				-voxels.dimensions[0] / 2,
