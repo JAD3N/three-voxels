@@ -7,7 +7,8 @@ export interface MeshData {
 	indices: number[];
 	vertices: number[];
 	colors: number[];
-	ao?: number[];
+	normals: number[];
+	aos: number[];
 }
 
 export interface MeshBuilderJob {
@@ -24,7 +25,7 @@ function createDefaultMaterial(): THREE.Material {
 
 	// add custom attribute
 	let vertexShader = [
-		'attribute vec3 ambientOcclusion;',
+		'attribute float ao;',
 		//add new line at end
 		'',
 	].join('\n') + shader.vertexShader;
@@ -33,7 +34,7 @@ function createDefaultMaterial(): THREE.Material {
 	vertexShader = vertexShader.replace('#include <color_vertex>', [
 		'#include <color_vertex>',
 		'#ifdef USE_AMBIENT_OCCLUSION',
-			'vColor.xyz *= ambientOcclusion;',
+			'vColor.xyz *= vec3(ao, ao, ao);',
 		'#endif',
 	].join('\n'))
 
@@ -137,15 +138,15 @@ export class MeshBuilder {
 		}
 
 		const [x, y, z] = res.position;
-		const { indices, vertices, colors, ao } = res.meshData;
+		const { indices, vertices, colors, normals, aos } = res.meshData;
 		const geometry = new THREE.BufferGeometry();
 
 		geometry.setIndex(indices);
 		geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(vertices), 3));
 		geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(colors), 3));
-		geometry.setAttribute('ambientOcclusion', new THREE.BufferAttribute(new Float32Array(ao), 3));
+		geometry.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(normals), 3));
+		geometry.setAttribute('ao', new THREE.BufferAttribute(new Float32Array(aos), 1));
 
-		geometry.computeVertexNormals();
 		geometry.computeBoundingBox();
 
 		// generate mesh
@@ -153,6 +154,8 @@ export class MeshBuilder {
 		mesh.position.set(x, y, z);
 		mesh.receiveShadow = true;
 		mesh.castShadow = true;
+		mesh.matrixAutoUpdate = false;
+		mesh.updateMatrix();
 
 		return mesh;
 	}

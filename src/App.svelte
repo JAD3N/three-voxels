@@ -13,7 +13,7 @@
 			return;
 		}
 
-		const res = await fetch('samples/largedata.vox');
+		const res = await fetch('samples/monu10.vox');
 		const vox = new VoxLoader(await res.arrayBuffer());
 
 		await vox.parse();

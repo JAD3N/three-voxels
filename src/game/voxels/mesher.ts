@@ -10,9 +10,8 @@ export interface MesherProps {
 	getColor: (colorIndex: number) => Color;
 }
 
-export function aoColor(ao: number): number[] {
-	const color = 1 - (ao / 3) / 5;
-	return [color, color, color];
+export function aoColor(ao: number): number {
+	return 1 - (ao / 3) / 4;
 }
 
 
@@ -92,7 +91,8 @@ export function mesher(props: MesherProps): MeshData {
 	const vertices: number[] = [];
 	const colors: number[] = [];
 	const indices: number[] = [];
-	const ao: number[] = [];
+	const normals: number[] = [];
+	const aos: number[] = [];
 
 	for(let dir = 0; dir < 3; dir++) {
 		const dirX = (dir + 1) % 3;
@@ -187,18 +187,28 @@ export function mesher(props: MesherProps): MeshData {
 
 						const vertexCount = vertices.length / 3;
 
+						const normal = [0, 0, 0];
 						const v2 = [0, 0, 0];
 						const v3 = [0, 0, 0];
 
 						if(colorIndex > 0) {
 							v2[dirX] = width;
 							v3[dirY] = height;
+							normal[dir] = 1;
 						} else {
 							colorIndex = -colorIndex;
 
 							v3[dirX] = width;
 							v2[dirY] = height;
+							normal[dir] = -1;
 						}
+
+						normals.push(
+							...normal,
+							...normal,
+							...normal,
+							...normal,
+						);
 
 						vertices.push(
 							pos[0], pos[1], pos[2],
@@ -222,11 +232,11 @@ export function mesher(props: MesherProps): MeshData {
 						const ao11 = (faceAO >> 4) & 3;
 						const ao01 = (faceAO >> 6) & 3;
 
-						ao.push(
-							...aoColor(ao00),
-							...aoColor(ao10),
-							...aoColor(ao11),
-							...aoColor(ao01),
+						aos.push(
+							aoColor(ao00),
+							aoColor(ao10),
+							aoColor(ao11),
+							aoColor(ao01),
 						);
 
 						if(ao00 + ao11 < ao01 + ao10) {
@@ -240,7 +250,6 @@ export function mesher(props: MesherProps): MeshData {
 								vertexCount + 3, vertexCount + 1, vertexCount + 2,
 							);
 						}
-
 
 						// reset faceMask (skips area on next row)
 						for(let j = 0; j < height; j++) {
@@ -262,5 +271,5 @@ export function mesher(props: MesherProps): MeshData {
 		}
 	}
 
-	return { indices, vertices, colors, ao };
+	return { indices, vertices, colors, normals, aos };
 }
