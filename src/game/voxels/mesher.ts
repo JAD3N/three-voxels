@@ -50,20 +50,14 @@ export function calcAOVertex(
 
 	const adjacent = neighbors[facePos.join(':')] ? 1 : 0;
 
-	console.log('a', facePos.join(':'));
-
 	facePos[dirY] = 0;
 
 	const side1 = neighbors[facePos.join(':')] ? 1 : 0;
-
-	console.log('b', facePos.join(':'));
 
 	facePos[dirX] = 0;
 	facePos[dirY] = y;
 
 	const side2 = neighbors[facePos.join(':')] ? 1 : 0;
-
-	console.log('c', facePos.join(':'));
 
 	if(side1 && side2) {
 		return 3;
