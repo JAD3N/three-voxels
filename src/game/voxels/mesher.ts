@@ -17,69 +17,53 @@ export function aoColor(ao: number): number[] {
 
 export function calcAO(
 	props: MesherProps,
-	pos: Position,
 	dir: number,
 	colorIndex: number | null,
 	neighbors: { [key: string]: number | null },
 ): number {
 	let ao = 0;
 
-	switch(dir) {
-		case 0:
-			if(colorIndex > 0) {
-				ao += calcAOVertex(props, neighbors['1:-1:-1'], neighbors['1:-1:0'], neighbors['1:0:-1']) << 0;
-				ao += calcAOVertex(props, neighbors['1:-1:1'], neighbors['1:-1:0'], neighbors['1:0:1']) << 6;
-				ao += calcAOVertex(props, neighbors['1:1:1'], neighbors['1:1:0'], neighbors['1:0:1']) << 4;
-				ao += calcAOVertex(props, neighbors['1:1:-1'], neighbors['1:0:-1'], neighbors['1:1:0']) << 2;
-			} else {
-				ao += calcAOVertex(props, neighbors['-1:-1:-1'], neighbors['-1:-1:0'], neighbors['-1:0:-1']) << 0;
-				ao += calcAOVertex(props, neighbors['-1:-1:1'], neighbors['-1:-1:0'], neighbors['-1:0:1']) << 2;
-				ao += calcAOVertex(props, neighbors['-1:1:1'], neighbors['-1:1:0'], neighbors['-1:0:1']) << 4;
-				ao += calcAOVertex(props, neighbors['-1:1:-1'], neighbors['-1:0:-1'], neighbors['-1:1:0']) << 6;
-			}
-			break;
-		case 1:
-			if(colorIndex > 1) {
-				ao += calcAOVertex(props, neighbors['-1:1:-1'], neighbors['-1:1:0'], neighbors['0:1:-1']) << 0;
-				ao += calcAOVertex(props, neighbors['-1:1:1'], neighbors['-1:1:0'], neighbors['0:1:1']) << 2;
-				ao += calcAOVertex(props, neighbors['1:1:1'], neighbors['1:1:0'], neighbors['0:1:1']) << 4;
-				ao += calcAOVertex(props, neighbors['1:1:-1'], neighbors['0:1:-1'], neighbors['1:1:0']) << 6;
-			} else {
-				ao += calcAOVertex(props, neighbors['-1:-1:-1'], neighbors['-1:-1:0'], neighbors['0:-1:-1']) << 0;
-				ao += calcAOVertex(props, neighbors['-1:-1:1'], neighbors['-1:-1:0'], neighbors['0:-1:1']) << 6;
-				ao += calcAOVertex(props, neighbors['1:-1:1'], neighbors['1:-1:0'], neighbors['0:-1:1']) << 4;
-				ao += calcAOVertex(props, neighbors['1:-1:-1'], neighbors['0:-1:-1'], neighbors['1:-1:0']) << 2;
-			}
-			break;
-		case 2:
-			if(colorIndex > 0) {
-				ao += calcAOVertex(props, neighbors['-1:-1:1'], neighbors['0:-1:1'], neighbors['-1:0:1']) << 0;
-				ao += calcAOVertex(props, neighbors['1:-1:1'], neighbors['0:-1:1'], neighbors['1:0:1']) << 2;
-				ao += calcAOVertex(props, neighbors['1:1:1'], neighbors['0:1:1'], neighbors['1:0:1']) << 4;
-				ao += calcAOVertex(props, neighbors['-1:1:1'], neighbors['-1:0:1'], neighbors['0:1:1']) << 6;
-			} else {
-				ao += calcAOVertex(props, neighbors['-1:-1:-1'], neighbors['0:-1:-1'], neighbors['-1:0:-1']) << 0;
-				ao += calcAOVertex(props, neighbors['1:-1:-1'], neighbors['0:-1:-1'], neighbors['1:0:-1']) << 6;
-				ao += calcAOVertex(props, neighbors['1:1:-1'], neighbors['0:1:-1'], neighbors['1:0:-1']) << 4;
-				ao += calcAOVertex(props, neighbors['-1:1:-1'], neighbors['-1:0:-1'], neighbors['0:1:-1']) << 2;
-			}
-			break;
-	}
+	ao += calcAOVertex(props, dir, colorIndex, neighbors, -1, -1) << 0;
+	ao += calcAOVertex(props, dir, colorIndex, neighbors, -1, 1) << 2;
+	ao += calcAOVertex(props, dir, colorIndex, neighbors, 1, 1) << 4;
+	ao += calcAOVertex(props, dir, colorIndex, neighbors, 1, -1) << 6;
 
 	return ao;
 }
 
 export function calcAOVertex(
 	_props: MesherProps,
-	adjacent: number | null,
-	side1: number | null,
-	side2: number | null,
+	dir: number,
+	colorIndex: number | null,
+	neighbors: { [key: string]: number | null },
+	x: number,
+	y: number,
 ) {
 	// TODO: passed props because it may be used for transparency
+	const dirX = (dir + 1) % 3;
+	const dirY = (dir + 2) % 3;
+	const facePos = [0, 0, 0];
 
-	adjacent = adjacent ? 1 : 0;
-	side1 = side1 ? 1 : 0;
-	side2 = side2 ? 1 : 0;
+	facePos[dir] = colorIndex > 0 ? 1 : -1;
+	facePos[dirX] = x;
+	facePos[dirY] = y;
+
+	const adjacent = neighbors[facePos.join(':')] ? 1 : 0;
+
+	console.log('a', facePos.join(':'));
+
+	facePos[dirY] = 0;
+
+	const side1 = neighbors[facePos.join(':')] ? 1 : 0;
+
+	console.log('b', facePos.join(':'));
+
+	facePos[dirX] = 0;
+	facePos[dirY] = y;
+
+	const side2 = neighbors[facePos.join(':')] ? 1 : 0;
+
+	console.log('c', facePos.join(':'));
 
 	if(side1 && side2) {
 		return 3;
@@ -143,7 +127,7 @@ export function mesher(props: MesherProps): MeshData {
 						}
 
 						faceMask[maskIndex] = colorIndex;
-						aoMask[maskIndex] = calcAO(props, [...pos], dir, colorIndex, neighbors);
+						aoMask[maskIndex] = calcAO(props, dir, colorIndex, neighbors);
 					}
 				}
 			}
@@ -223,11 +207,16 @@ export function mesher(props: MesherProps): MeshData {
 						const ao11 = (faceAO >> 4) & 3;
 						const ao01 = (faceAO >> 6) & 3;
 
+						// check if corners needs flipping
+						let flip = dir % 2 === 0
+							? colorIndex > 0
+							: !(colorIndex > 0);
+
 						ao.push(
 							...aoColor(ao00),
-							...aoColor(ao10),
+							...aoColor(flip ? ao10 : ao01),
 							...aoColor(ao11),
-							...aoColor(ao01),
+							...aoColor(flip ? ao01 : ao10),
 						);
 
 						if(ao00 + ao11 < ao01 + ao10) {
