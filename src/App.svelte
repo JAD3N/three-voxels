@@ -25,8 +25,6 @@
 			const voxels = new Voxels(model.dimensions, vox.palette, model.voxels);
 			const mesh = meshBuilder.build(voxels, 32, game.camera.position);
 
-			console.log(voxels.palette);
-
 			mesh.position.set(
 				-voxels.dimensions[0] / 2,
 				-voxels.dimensions[1] / 2,
