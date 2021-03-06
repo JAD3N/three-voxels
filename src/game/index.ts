@@ -44,38 +44,30 @@ export class Game {
 		const aspect = this.canvas.width / this.canvas.height;
 
 		this.camera = new THREE.PerspectiveCamera(60, aspect, 1, 1000);
-		this.camera.position.z = 10 * 1;
-		this.camera.position.y = 5 * 1;
-		this.camera.position.x = -8 * 1;
+		this.camera.position.z = -10 * 20;
+		this.camera.position.y = 5 * 20;
+		this.camera.position.x = -10 * 20;
 		this.camera.lookAt(0, 0, 0);
 
 		this.scene.add(new THREE.AmbientLight(0xeeeeee));
 
-		// const dirLight = new THREE.DirectionalLight(0xffffff, 0.40);
-		// dirLight.position.set(-0.6, 0.75, 1);
-		// dirLight.position.multiplyScalar(50);
-		// dirLight.castShadow = true;
-		// dirLight.shadow.mapSize.set(2048, 2048);
-		// const d = 256;
-		// dirLight.shadow.camera.left = -d;
-		// dirLight.shadow.camera.right = d;
-		// dirLight.shadow.camera.top = d;
-		// dirLight.shadow.camera.bottom = -d;
-		// this.scene.add(dirLight);
+		const dirLight = new THREE.DirectionalLight(0xffffff, 0.40);
+		dirLight.position.set(-0.6, 0.75, 1);
+		dirLight.position.multiplyScalar(50);
+		dirLight.castShadow = true;
+		dirLight.shadow.mapSize.set(2048, 2048);
+		const d = 256;
+		dirLight.shadow.camera.left = -d;
+		dirLight.shadow.camera.right = d;
+		dirLight.shadow.camera.top = d;
+		dirLight.shadow.camera.bottom = -d;
+		this.scene.add(dirLight);
 
 		this.controls = new TrackballControls(this.camera, this.renderer.domElement);
 		this.composer = new EffectComposer(this.renderer);
 
 		// base render pass
 		this.composer.addPass(new RenderPass(this.scene, this.camera));
-
-		// sao pass
-		// const saoPass = new SAOPass(this.scene, this.camera, false, true);
-		// saoPass.params.saoScale = 4;
-		// saoPass.params.saoIntensity = 0.001;
-		// saoPass.params.saoBlurRadius = 0;
-		// saoPass.params.saoKernelRadius = 25;
-		// this.composer.addPass(saoPass);
 
 		// smaa pass (good performance antialiasing)
 		this.composer.addPass(new SMAAPass(
