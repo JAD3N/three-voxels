@@ -29,27 +29,9 @@ export interface VoxVoxelsChunk extends VoxChunk {
 	voxels: Uint8Array;
 }
 
-export enum VoxMaterialType {
-	DIFFUSE = 0,
-	METAL = 1,
-	GLASS = 2,
-	EMISSIVE = 3,
-}
-
-export interface VoxMaterialChunk extends VoxChunk {
-	id: number;
-	type: VoxMaterialType;
-	weight: number;
-
-	plastic?: number;
-	roughness?: number;
-	specular?: number;
-	ior?: number;
-	attenuation?: number;
-	power?: number;
-	glow?: number;
-
-	isTotalPower: boolean;
+export interface VoxMaterialDictChunk extends VoxChunk {
+	materialId: number;
+	materialDict: VoxMaterialDict;
 }
 
 export interface VoxModel {
@@ -57,7 +39,30 @@ export interface VoxModel {
 	voxels: Uint8Array;
 }
 
-export type VoxPalette = [number, number, number, number][];
+export interface VoxDict {
+	[key: string]: string;
+}
+
+export interface VoxMaterialDict extends VoxDict {
+	_type?: '_diffuse' | '_metal' | '_glass' | '_emit';
+	_weight?: string;
+	_rough?: string;
+	_spec?: string;
+	_ior?: string;
+	_att?: string;
+	_flux?: string;
+	_plastic?: string;
+	_trans?: string;
+}
+
+export interface VoxPalette {
+	colors: [number, number, number, number][];
+	materials: VoxMaterial[];
+}
+
+export interface VoxMaterial {
+	transparency?: number;
+}
 
 export const DEFAULT_PALETTE = [
 	0x00000000, 0xffffffff, 0xffccffff, 0xff99ffff, 0xff66ffff, 0xff33ffff, 0xff00ffff, 0xffffccff, 0xffccccff, 0xff99ccff, 0xff66ccff, 0xff33ccff, 0xff00ccff, 0xffff99ff, 0xffcc99ff, 0xff9999ff,
@@ -100,6 +105,11 @@ export class VoxLoader {
 		return String.fromCharCode(...slice);
 	}
 
+	getPrefixedStringAt(index: number): string {
+		const length = this.view.getInt32(index, true);
+		return this.getStringAt(index + 4, length);
+	}
+
 	parseHeader(): VoxHeader {
 		if(this.getStringAt(0, 4) !== 'VOX ') {
 			throw new Error('Invalid header!');
@@ -107,6 +117,23 @@ export class VoxLoader {
 
 		const version = this.view.getInt32(4, true);
 		return { version };
+	}
+
+	parseDict(index: number): VoxDict {
+		const numOfPairs = this.view.getInt32(index, true);
+		const dict: VoxDict = {};
+
+		for(let i = 0, offset = 0; i < numOfPairs; i++) {
+			const key = this.getPrefixedStringAt(index + 4 + offset);
+			offset += key.length + 4;
+
+			const value = this.getPrefixedStringAt(index + 4 + offset);
+			offset += value.length + 4;
+
+			dict[key] = value;
+		}
+
+		return dict;
 	}
 
 	parseChunk(index: number): VoxChunk {
@@ -178,12 +205,48 @@ export class VoxLoader {
 				} as VoxPaletteChunk;
 				break;
 			case 'MATT':
-				// const id = this.view.getInt32(index + 12, true);
-				// const type = this.view.getInt32(index + 12 + 4, true);
-				// const weight = this.view.getFloat32(index + 12 + 8, true);
-				// const bits = this.view.getInt32(index + 12 + 12, true);
+				const id = this.view.getInt32(index + 12, true);
+				const type = this.view.getInt32(index + 12 + 4, true);
+				const weight = this.view.getFloat32(index + 12 + 8, true);
+				const bits = this.view.getInt32(index + 12 + 12, true);
+				const isTotalPower = !!(bits & (1 << 7));
+
+				const map = new Map<string, number>();
+				const keys = [
+					'plastic',
+					'roughness',
+					'specular',
+					'ior',
+					'attenuation',
+					'power',
+					'glow',
+				];
+
+				for(const [i, key] of keys.entries()) {
+					if(bits & (1 << i)) {
+						// only set value in map if bit is set
+						map.set(key, this.view.getFloat32(index + 12 + 16 + i * 4));
+					}
+				}
+
+				console.log('MATT', {
+					id,
+					type,
+					weight,
+					...map.entries(),
+					isTotalPower,
+				});
+
 				break;
-			// TODO: extended chunk ids
+			case 'MATL':
+				const materialId = this.view.getInt32(index + 12, true);
+				const materialDict: VoxMaterialDict = this.parseDict(index + 12 + 4);
+				chunk = {
+					...chunk,
+					materialId,
+					materialDict,
+				} as VoxMaterialDictChunk;
+				break;
 			default:
 				console.log('Unknown chunk id:', chunk.chunkId);
 		}
@@ -243,7 +306,10 @@ export class VoxLoader {
 			if(chunk?.chunkId === 'RGBA') {
 				const paletteChunk = chunk as VoxPaletteChunk;
 
-				this.palette = [[0, 0, 0, 0]];
+				this.palette = {
+					materials: [],
+					colors: [[0, 0, 0, 0]],
+				};
 
 				for(let i = 0; i < 255; i++) {
 					const color = [
@@ -253,18 +319,30 @@ export class VoxLoader {
 						paletteChunk.colors[i * 4 + 3],
 					];
 
-					this.palette.push(color as VoxPalette[0]);
+					this.palette.colors.push(color as VoxPalette['colors'][0]);
 				}
+			} else if(chunk?.chunkId === 'MATL') {
+				const matChunk = chunk as VoxMaterialDictChunk;
+				const transparency = matChunk.materialDict?._trans
+					? parseFloat(matChunk.materialDict._trans)
+					: undefined;
+
+				this.palette.materials[matChunk.materialId] = { transparency };
 			}
 		}
 
 		if(!this.palette) {
-			this.palette = DEFAULT_PALETTE.map(color => [
-				(color >>> 16) & 0xff,
-				(color >>> 8) & 0xff,
-				(color >>> 0) & 0xff,
-				(color >>> 24) & 0xff,
-			]);
+			this.palette = {
+				materials: [],
+				colors: DEFAULT_PALETTE.map(color => [
+					(color >>> 16) & 0xff,
+					(color >>> 8) & 0xff,
+					(color >>> 0) & 0xff,
+					(color >>> 24) & 0xff,
+				]),
+			};
 		}
+
+		console.log(main);
 	}
 }

@@ -1,19 +1,19 @@
-import type { Color, Dimensions, Palette, Position } from '.';
+import type { Color, Dimensions, Material, Position } from '.';
 import type { MeshData } from './mesh-builder';
 
 export interface MesherProps {
 	position: Position;
 	dimensions: Dimensions;
-	getFaceMask: (len: number) => Int16Array;
-	getAOMask: (len: number) => Uint8Array;
+	getFaceMask: (len: number) => Uint16Array;
+	getAOMask: (len: number) => Uint16Array;
 	getVoxel: (x: number, y: number, z: number) => number | null;
 	getColor: (colorIndex: number) => Color;
+	getMaterial: (colorIndex: number) => Material;
 }
 
 export function aoColor(ao: number): number {
 	return 1 - (ao / 3) / 4;
 }
-
 
 export function calcAO(
 	props: MesherProps,
@@ -119,152 +119,187 @@ export function mesher(props: MesherProps): MeshData {
 						);
 					}
 
-					let aFace = getRelative(0, 0, 0) || 0;
-					let bFace = getRelative(...offset) || 0;
+					const aFace = getRelative(0, 0, 0) || 0;
+					const aMat = props.getMaterial(aFace);
+					const aTrans = aMat?.transparency ? aMat.transparency < 1 : false;
 
-					if(!!aFace === !!bFace) {
+					const bFace = getRelative(...offset) || 0;
+					const bMat = props.getMaterial(bFace);
+					const bTrans = bMat?.transparency ? bMat.transparency < 1 : false;
+
+					if((!aFace && !bFace) || (!aTrans && !bTrans && !!aFace && !!bFace) || (aFace === bFace)) {
 						faceMask[maskIndex] = 0;
 						aoMask[maskIndex] = 0;
 					} else {
-						const colorIndex = !!aFace ? aFace : -bFace;
-						const neighbors: Record<string, number | null> = {};;
+						const neighbors: Record<string, number | null> = {};
+						let ao = 0;
+						let value = 0;
 
-						for(let z = -1; z < 2; z++) {
-							for(let y = -1; y < 2; y++) {
-								for(let x = -1; x < 2; x++) {
-									if(colorIndex > 0) {
-										neighbors[`${x}:${y}:${z}`] = getRelative(x, y, z);
-									} else {
-										neighbors[`${x}:${y}:${z}`] = getRelative(x + offset[0], y + offset[1], z + offset[2]);
+						if(aFace) {
+							let aAO = 0;
+
+							if(!aTrans) {
+								for(let z = -1; z < 2; z++) {
+									for(let y = -1; y < 2; y++) {
+										for(let x = -1; x < 2; x++) {
+											neighbors[`${x}:${y}:${z}`] = getRelative(x, y, z);
+										}
 									}
 								}
+
+								aAO = calcAO(props, dir, aFace, neighbors);
 							}
+
+							ao += aAO << 0;
+							value += aFace << 0;
 						}
 
-						faceMask[maskIndex] = colorIndex;
-						aoMask[maskIndex] = calcAO(props, dir, colorIndex, neighbors);
+						if(bFace) {
+							let bAO = 0;
+
+							if(!bTrans) {
+								for(let z = -1; z < 2; z++) {
+									for(let y = -1; y < 2; y++) {
+										for(let x = -1; x < 2; x++) {
+											neighbors[`${x}:${y}:${z}`] = getRelative(x + offset[0], y + offset[1], z + offset[2]);
+										}
+									}
+								}
+
+								bAO = calcAO(props, dir, -bFace, neighbors);
+							}
+
+							ao += bAO << 8;
+							value += bFace << 8;
+						}
+
+						faceMask[maskIndex] = value;
+						aoMask[maskIndex] = ao;
 					}
 				}
 			}
 
 			pos[dir]++;
-			maskIndex = 0;
 
-			for(pos[dirY] = 0; pos[dirY] < dirHeight; pos[dirY]++) {
-				for(pos[dirX] = 0; pos[dirX] < dirWidth;) {
-					let colorIndex = faceMask[maskIndex];
-					let faceAO = aoMask[maskIndex];
+			for(const shift of [0, 8]) {
+				maskIndex = 0;
 
-					if(!!colorIndex) {
-						let width = 1;
+				for(pos[dirY] = 0; pos[dirY] < dirHeight; pos[dirY]++) {
+					for(pos[dirX] = 0; pos[dirX] < dirWidth;) {
+						let colorIndex = (faceMask[maskIndex] >> shift) & 0xff;
+						let faceAO = (aoMask[maskIndex] >> shift) & 0xff;
 
-						// keep going until end of boundary or value changes
-						while(colorIndex === faceMask[maskIndex + width] && faceAO === aoMask[maskIndex + width] && pos[dirX] + width < dirWidth) {
-							width++;
-						}
+						if(!!colorIndex) {
+							let width = 1;
 
-						let height = 1;
-						let done = false;
+							// keep going until end of boundary or value changes
+							while(colorIndex === ((faceMask[maskIndex + width] >> shift) & 0xff) && faceAO === ((aoMask[maskIndex + width] >> shift) & 0xff) && pos[dirX] + width < dirWidth) {
+								width++;
+							}
 
-						while(pos[dirY] + height < dirHeight) {
-							// walk row below and check if value is same
-							for(let i = 0; i < width; i++) {
-								const index = maskIndex + i + height * props.dimensions[dirX];
-								if(colorIndex !== faceMask[index] || faceAO !== aoMask[index]) {
-									done = true;
+							let height = 1;
+							let done = false;
+
+							while(pos[dirY] + height < dirHeight) {
+								// walk row below and check if value is same
+								for(let i = 0; i < width; i++) {
+									const index = maskIndex + i + height * props.dimensions[dirX];
+									if(colorIndex !== ((faceMask[index] >> shift) & 0xff) || faceAO !== ((aoMask[index] >> shift) & 0xff)) {
+										done = true;
+										break;
+									}
+								}
+
+								// check if completed successfully
+								if(done) {
+									// stop if failed to walk
 									break;
+								}
+
+								height++;
+							}
+
+							const vertexCount = vertices.length / 3;
+
+							const normal = [0, 0, 0];
+							const v2 = [0, 0, 0];
+							const v3 = [0, 0, 0];
+
+							if(shift === 0) {
+								v2[dirX] = width;
+								v3[dirY] = height;
+								normal[dir] = 1;
+							} else {
+								v3[dirX] = width;
+								v2[dirY] = height;
+								normal[dir] = -1;
+							}
+
+							normals.push(
+								...normal,
+								...normal,
+								...normal,
+								...normal,
+							);
+
+							vertices.push(
+								pos[0], pos[1], pos[2],
+								pos[0] + v2[0], pos[1] + v2[1], pos[2] + v2[2],
+								pos[0] + v2[0] + v3[0], pos[1] + v2[1] + v3[1], pos[2] + v2[2] + v3[2],
+								pos[0] + v3[0], pos[1] + v3[1], pos[2] + v3[2],
+							);
+
+							const color = props.getColor(colorIndex);
+
+							// vertex colors are faster than textures
+							colors.push(
+								color[0] / 255, color[1] / 255, color[2] / 255,
+								color[0] / 255, color[1] / 255, color[2] / 255,
+								color[0] / 255, color[1] / 255, color[2] / 255,
+								color[0] / 255, color[1] / 255, color[2] / 255,
+							);
+
+							const ao00 = (faceAO >> 0) & 3;
+							const ao10 = (faceAO >> 2) & 3;
+							const ao11 = (faceAO >> 4) & 3;
+							const ao01 = (faceAO >> 6) & 3;
+
+							aos.push(
+								aoColor(ao00),
+								aoColor(ao10),
+								aoColor(ao11),
+								aoColor(ao01),
+							);
+
+							if(ao00 + ao11 < ao01 + ao10) {
+								indices.push(
+									vertexCount, vertexCount + 1, vertexCount + 2,
+									vertexCount, vertexCount + 2, vertexCount + 3,
+								);
+							} else {
+								indices.push(
+									vertexCount + 3, vertexCount, vertexCount + 1,
+									vertexCount + 3, vertexCount + 1, vertexCount + 2,
+								);
+							}
+
+							// reset faceMask (skips area on next row)
+							for(let j = 0; j < height; j++) {
+								for(let i = 0; i < width; i++) {
+									const index = maskIndex + i + j * dirWidth;
+
+									faceMask[index] &= ~(0xff << shift);
+									faceMask[index] &= ~(0xff << shift);
 								}
 							}
 
-							// check if completed successfully
-							if(done) {
-								// stop if failed to walk
-								break;
-							}
-
-							height++;
-						}
-
-						const vertexCount = vertices.length / 3;
-
-						const normal = [0, 0, 0];
-						const v2 = [0, 0, 0];
-						const v3 = [0, 0, 0];
-
-						if(colorIndex > 0) {
-							v2[dirX] = width;
-							v3[dirY] = height;
-							normal[dir] = 1;
+							// offset walked width
+							pos[dirX] += width;
+							maskIndex += width;
 						} else {
-							colorIndex = -colorIndex;
-
-							v3[dirX] = width;
-							v2[dirY] = height;
-							normal[dir] = -1;
+							pos[dirX]++;
+							maskIndex++;
 						}
-
-						normals.push(
-							...normal,
-							...normal,
-							...normal,
-							...normal,
-						);
-
-						vertices.push(
-							pos[0], pos[1], pos[2],
-							pos[0] + v2[0], pos[1] + v2[1], pos[2] + v2[2],
-							pos[0] + v2[0] + v3[0], pos[1] + v2[1] + v3[1], pos[2] + v2[2] + v3[2],
-							pos[0] + v3[0], pos[1] + v3[1], pos[2] + v3[2],
-						);
-
-						const color = props.getColor(colorIndex);
-
-						// vertex colors are faster than textures
-						colors.push(
-							color[0] / 255, color[1] / 255, color[2] / 255,
-							color[0] / 255, color[1] / 255, color[2] / 255,
-							color[0] / 255, color[1] / 255, color[2] / 255,
-							color[0] / 255, color[1] / 255, color[2] / 255,
-						);
-
-						const ao00 = (faceAO >> 0) & 3;
-						const ao10 = (faceAO >> 2) & 3;
-						const ao11 = (faceAO >> 4) & 3;
-						const ao01 = (faceAO >> 6) & 3;
-
-						aos.push(
-							aoColor(ao00),
-							aoColor(ao10),
-							aoColor(ao11),
-							aoColor(ao01),
-						);
-
-						if(ao00 + ao11 < ao01 + ao10) {
-							indices.push(
-								vertexCount, vertexCount + 1, vertexCount + 2,
-								vertexCount, vertexCount + 2, vertexCount + 3,
-							);
-						} else {
-							indices.push(
-								vertexCount + 3, vertexCount, vertexCount + 1,
-								vertexCount + 3, vertexCount + 1, vertexCount + 2,
-							);
-						}
-
-						// reset faceMask (skips area on next row)
-						for(let j = 0; j < height; j++) {
-							for(let i = 0; i < width; i++) {
-								faceMask[maskIndex + i + j * dirWidth] = 0;
-								aoMask[maskIndex + i + j * dirWidth] = 0;
-							}
-						}
-
-						// offset walked width
-						pos[dirX] += width;
-						maskIndex += width;
-					} else {
-						pos[dirX]++;
-						maskIndex++;
 					}
 				}
 			}

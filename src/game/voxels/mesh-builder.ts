@@ -42,9 +42,18 @@ function createDefaultMaterial(): THREE.Material {
 		uniforms: shader.uniforms,
 		fragmentShader: shader.fragmentShader,
 		vertexShader,
-		defines: { 'USE_AMBIENT_OCCLUSION': '' },
+		// defines: { 'USE_AMBIENT_OCCLUSION': '' },
 		vertexColors: true,
 		lights: true,
+		transparent: true,
+		opacity: 0.25,
+	});
+
+	return new THREE.MeshPhongMaterial({
+		vertexColors: true,
+		transparent: true,
+		opacity: 0.2,
+		side: THREE.DoubleSide,
 	});
 
 	return material;

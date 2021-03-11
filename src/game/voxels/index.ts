@@ -3,7 +3,16 @@ import { SUPPORTS_SHARED_BUFFER } from './mesh-builder';
 export type Color = [number, number, number, number];
 export type Dimensions = [number, number, number];
 export type Position = [number, number, number];
-export type Palette = Color[];
+// export type Palette = Color[];
+
+export interface Material {
+	transparency?: number;
+}
+
+export interface Palette {
+	colors: Color[];
+	materials: Material[];
+}
 
 export class Voxels {
 	buffer: ArrayBuffer | SharedArrayBuffer;

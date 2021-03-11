@@ -44,9 +44,9 @@ export class Game {
 		const aspect = this.canvas.width / this.canvas.height;
 
 		this.camera = new THREE.PerspectiveCamera(60, aspect, 1, 1000);
-		this.camera.position.z = -10 * 20;
-		this.camera.position.y = 5 * 20;
-		this.camera.position.x = -10 * 20;
+		this.camera.position.z = -10 * 5;
+		this.camera.position.y = 5 * 5;
+		this.camera.position.x = -10 * 5;
 		this.camera.lookAt(0, 0, 0);
 
 		this.scene.add(new THREE.AmbientLight(0xeeeeee));

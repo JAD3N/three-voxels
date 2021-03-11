@@ -1,21 +1,21 @@
-import type { Color, Dimensions, Palette, Position } from '.';
+import type { Color, Dimensions, Palette, Position, Material } from '.';
 import type { MeshData } from './mesh-builder';
 import { mesher } from './mesher';
 
-let faceMask = new Int16Array(32 * 32);
-let aoMask = new Uint8Array(32 * 32);
+let faceMask = new Uint16Array(32 * 32);
+let aoMask = new Uint16Array(32 * 32);
 
-function getFaceMask(len: number): Int16Array {
+function getFaceMask(len: number): Uint16Array {
 	if(faceMask.length < len) {
-		faceMask = new Int16Array(len);
+		faceMask = new Uint16Array(len);
 	}
 
 	return faceMask;
 }
 
-function getAOMask(len: number): Uint8Array {
+function getAOMask(len: number): Uint16Array {
 	if(aoMask.length < len) {
-		aoMask = new Uint8Array(len);
+		aoMask = new Uint16Array(len);
 	}
 
 	return aoMask;
@@ -62,7 +62,11 @@ self.addEventListener('message', (event: MessageEvent<ChunkRequest>) => {
 	}
 
 	function getColor(colorIndex: number): Color {
-		return voxels.palette[colorIndex];
+		return voxels.palette.colors[colorIndex];
+	}
+
+	function getMaterial(colorIndex: number): Material | null {
+		return voxels.palette.materials[colorIndex] || null;
 	}
 
 	// can take some time
@@ -73,6 +77,7 @@ self.addEventListener('message', (event: MessageEvent<ChunkRequest>) => {
 		getAOMask,
 		getVoxel,
 		getColor,
+		getMaterial,
 	});
 
 	self.postMessage({

@@ -13,17 +13,19 @@
 			return;
 		}
 
-		const res = await fetch('samples/monu10.vox');
+		const res = await fetch('samples/glass.vox');
 		const vox = new VoxLoader(await res.arrayBuffer());
 
 		await vox.parse();
+
+		console.log(vox.palette.materials);
 
 		const game = new Game(canvas);
 		const meshBuilder = new MeshBuilder();
 
 		for(const model of vox.models) {
 			const voxels = new Voxels(model.dimensions, vox.palette, model.voxels);
-			const mesh = meshBuilder.build(voxels, 32, game.camera.position);
+			const mesh = meshBuilder.build(voxels, 0, game.camera.position);
 
 			mesh.position.set(
 				-voxels.dimensions[0] / 2,
